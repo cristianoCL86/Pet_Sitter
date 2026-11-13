@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f3ee">
+  <title>Pet Sitter · Bitácora</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#"><span class="brand-mark">🐾</span><span>Pet Sitter<small>Bitácora de cuidado</small></span></a>
+    <span class="demo-pill">Modo demostración</span>
+  </header>
+  <main class="container">
+    <section class="welcome">
+      <p class="eyebrow">BITÁCORA FAMILIAR</p>
+      <h1>Un día lleno de cuidados.</h1>
+      <p>Registra cómo estuvo el día y deja a la familia al tanto de cada detalle.</p>
+    </section>
+    <section class="panel">
+      <div class="section-head">
+        <div><p class="eyebrow">NUEVA PUBLICACIÓN</p><h2>Resumen del día</h2></div>
+        <label class="date-label">Fecha<input id="entryDate" type="date"></label>
+      </div>
+      <label class="field-label" for="dayDescription">¿Cómo estuvo el día?</label>
+      <textarea id="dayDescription" maxlength="250" placeholder="Cuéntale a la familia los momentos importantes del día…" rows="3"></textarea>
+      <div class="counter"><span id="charCount">0</span>/250 caracteres</div>
+      <div class="photo-area">
+        <div><strong>Fotos del día</strong><p>Agrega una o varias fotografías.</p></div>
+        <label class="upload-button">＋ Agregar fotos<input id="photos" type="file" accept="image/*" multiple hidden></label>
+      </div>
+      <div id="photoPreview" class="photo-preview"></div>
+    </section>
+    <section class="panel">
+      <div class="section-head"><div><p class="eyebrow">CUIDADO INDIVIDUAL</p><h2>¿Cómo estuvo cada perrita?</h2></div></div>
+      <div id="petsContainer" class="pets-grid"></div>
+    </section>
+    <div class="actions"><button id="saveEntry" class="primary-button">Guardar publicación</button><span id="saveMessage" role="status"></span></div>
+    <section class="history">
+      <div class="section-head"><div><p class="eyebrow">REGISTROS ANTERIORES</p><h2>Historial de la familia</h2></div></div>
+      <div id="historyList" class="history-list"><p class="empty-state">Todavía no hay publicaciones guardadas en esta demostración.</p></div>
+    </section>
+    <footer>Pet Sitter · Cada cuidado cuenta ❤️</footer>
+  </main>
+  <script src="js/pets.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
