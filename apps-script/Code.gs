@@ -109,3 +109,103 @@ function setupPetSitterSheets() {
 
   return { created: created, preserved: preserved };
 }
+
+
+/**
+ * Registra la familia inicial y sus mascotas.
+ * Ejecutar manualmente desde el editor, una sola vez.
+ * La función es idempotente: reutiliza los registros si ya existen.
+ */
+function registerInitialFamilyLuluMaya() {
+  const config = getPetSitterConfig_();
+  const spreadsheet = SpreadsheetApp.openById(config.spreadsheetId);
+  const familySheet = spreadsheet.getSheetByName('Families');
+  const petsSheet = spreadsheet.getSheetByName('Pets');
+
+  if (!familySheet || !petsSheet) {
+    throw new Error('Primero ejecuta setupPetSitterSheets().');
+  }
+
+  const familyName = 'Familia Lulu y Maya';
+  const now = new Date();
+  const familyValues = familySheet.getDataRange().getValues();
+  const familyHeaders = familyValues[0];
+  const familyNameCol = familyHeaders.indexOf('family_name');
+  const familyIdCol = familyHeaders.indexOf('family_id');
+
+  if (familyNameCol < 0 || familyIdCol < 0) {
+    throw new Error('La pestaña Families no tiene los encabezados esperados.');
+  }
+
+  let familyId = null;
+  for (let i = 1; i < familyValues.length; i++) {
+    if (String(familyValues[i][familyNameCol]).trim() === familyName) {
+      familyId = String(familyValues[i][familyIdCol]);
+      break;
+    }
+  }
+
+  if (!familyId) {
+    familyId = Utilities.getUuid();
+    const familyRow = {
+      family_id: familyId,
+      family_name: familyName,
+      owner_name: '',
+      owner_email: '',
+      read_token_hash: '',
+      active: true,
+      created_at: now
+    };
+    familySheet.appendRow(familyHeaders.map(function(header) {
+      return Object.prototype.hasOwnProperty.call(familyRow, header)
+        ? familyRow[header] : '';
+    }));
+  }
+
+  const petValues = petsSheet.getDataRange().getValues();
+  const petHeaders = petValues[0];
+  const petFamilyCol = petHeaders.indexOf('family_id');
+  const petNameCol = petHeaders.indexOf('pet_name');
+
+  if (petFamilyCol < 0 || petNameCol < 0) {
+    throw new Error('La pestaña Pets no tiene los encabezados esperados.');
+  }
+
+  const existingPets = {};
+  for (let i = 1; i < petValues.length; i++) {
+    if (String(petValues[i][petFamilyCol]) === familyId) {
+      existingPets[String(petValues[i][petNameCol]).trim().toLowerCase()] = true;
+    }
+  }
+
+  const petsToRegister = ['Lulu', 'Maya'];
+  const addedPets = [];
+
+  petsToRegister.forEach(function(petName) {
+    if (existingPets[petName.toLowerCase()]) return;
+
+    const petRow = {
+      pet_id: Utilities.getUuid(),
+      family_id: familyId,
+      pet_name: petName,
+      species: 'Perro',
+      active: true,
+      created_at: now
+    };
+    petsSheet.appendRow(petHeaders.map(function(header) {
+      return Object.prototype.hasOwnProperty.call(petRow, header)
+        ? petRow[header] : '';
+    }));
+    addedPets.push(petName);
+  });
+
+  const result = {
+    familyName: familyName,
+    familyId: familyId,
+    petsAdded: addedPets,
+    message: 'Registro de familia completado. No se generó un enlace de acceso.'
+  };
+
+  Logger.log(JSON.stringify(result));
+  return result;
+}
