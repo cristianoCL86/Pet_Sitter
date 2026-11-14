@@ -1,5 +1,63 @@
-(() => {
+( () => {
+  "use strict";
   const $ = (id) => document.getElementById(id);
+  const loginForm = $("loginForm");
+  const loginPanel = $("loginPanel");
+  const appContent = $("appContent");
+  const loginMessage = $("loginMessage");
+  const loginButton = $("loginButton");
+  const logoutButton = $("logoutButton");
+  const sessionLabel = $("sessionLabel");
+
+  function showLogin(message = "") {
+    loginPanel.hidden = false;
+    appContent.hidden = true;
+    logoutButton.hidden = true;
+    sessionLabel.hidden = true;
+    loginMessage.textContent = message;
+    $("loginPassword").value = "";
+  }
+
+  function showApp(session) {
+    loginPanel.hidden = true;
+    appContent.hidden = false;
+    logoutButton.hidden = false;
+    sessionLabel.hidden = false;
+    sessionLabel.textContent = session.displayName || "Sesión activa";
+  }
+
+  loginForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    loginButton.disabled = true;
+    loginMessage.textContent = "Comprobando credenciales…";
+    try {
+      const session = await window.PetSitterAPI.login(
+        $("loginUsername").value,
+        $("loginPassword").value
+      );
+      showApp(session);
+    } catch (error) {
+      showLogin(error.message || "No fue posible iniciar sesión.");
+    } finally {
+      loginButton.disabled = false;
+    }
+  });
+
+  logoutButton.addEventListener("click", async () => {
+    logoutButton.disabled = true;
+    try {
+      await window.PetSitterAPI.logout();
+      showLogin("Sesión cerrada.");
+    } catch (error) {
+      showLogin("La sesión se cerró en este navegador. No se pudo confirmar la revocación en el servidor.");
+    } finally {
+      logoutButton.disabled = false;
+    }
+  });
+
+  // La sesión vive solo en memoria; al recargar la página se solicita acceso otra vez.
+  showLogin();
+
   const today = new Date();
   $("entryDate").value = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0,10);
   const levels = ["0%","25%","50%","75%","100%"];
@@ -48,6 +106,10 @@
     return String(value).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   }
   $("saveEntry").addEventListener("click", () => {
+    if (!window.PetSitterAPI.isAuthenticated()) {
+      showLogin("Tu sesión no está activa. Inicia sesión nuevamente.");
+      return;
+    }
     const entry = {
       date: $("entryDate").value,
       description: $("dayDescription").value.trim(),
@@ -57,7 +119,7 @@
     if (!entry.date) { $("saveMessage").textContent = "Selecciona una fecha."; return; }
     history.push(entry);
     renderHistory();
-    $("saveMessage").textContent = "Registro agregado a la demostración. Aún no se ha guardado en la nube.";
+    $("saveMessage").textContent = "Registro agregado a la demostración local. Todavía no se guarda en la nube.";
   });
   renderPets();
 })();
