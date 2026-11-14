@@ -284,9 +284,8 @@ function adminCreateSitterFromProperties() {
     }
 
     for (let i = 1; i < sitterValues.length; i++) {
-      if (String(sitterValues[i][usernameCol]).toLowerCase() === username.toLowerCase() &&
-          String(sitterValues[i][familyCol]) === familyId) {
-        throw new Error('Ese nombre de usuario ya existe para esta familia.');
+      if (String(sitterValues[i][usernameCol]).trim().toLowerCase() === username.toLowerCase()) {
+        throw new Error('Ese nombre de usuario ya existe. Los nombres de usuario deben ser únicos en toda la plataforma.');
       }
     }
 
@@ -314,6 +313,239 @@ function adminCreateSitterFromProperties() {
   } finally {
     lock.releaseLock();
   }
+}
+
+
+/**
+ * Autentica un Pet Sitter y crea una sesión de 12 horas.
+ * No exponer directamente: será invocada por el controlador API en una etapa posterior.
+ */
+function authenticateSitter_(username, password) {
+  if (typeof username !== 'string' || typeof password !== 'string' ||
+      !username.trim() || !password || username.length > 40 || password.length > 256) {
+    throw new Error('Credenciales inválidas.');
+  }
+
+  const config = getPetSitterConfig_();
+  const spreadsheet = SpreadsheetApp.openById(config.spreadsheetId);
+  const sitterSheet = spreadsheet.getSheetByName('PetSitters');
+  const familySheet = spreadsheet.getSheetByName('Families');
+  const sessionsSheet = spreadsheet.getSheetByName('Sessions');
+  if (!sitterSheet || !familySheet || !sessionsSheet) {
+    throw new Error('Faltan pestañas requeridas para autenticar.');
+  }
+
+  const values = sitterSheet.getDataRange().getValues();
+  const headers = values[0];
+  const col = {
+    id: headers.indexOf('sitter_id'),
+    family: headers.indexOf('family_id'),
+    username: headers.indexOf('username'),
+    display: headers.indexOf('display_name'),
+    salt: headers.indexOf('password_salt'),
+    hash: headers.indexOf('password_hash'),
+    active: headers.indexOf('active')
+  };
+  if (Object.keys(col).some(function(k) { return col[k] < 0; })) {
+    throw new Error('La estructura de PetSitters no es válida.');
+  }
+
+  let account = null;
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][col.username]).trim().toLowerCase() === username.trim().toLowerCase()) {
+      account = {
+        id: String(values[i][col.id]),
+        familyId: String(values[i][col.family]),
+        displayName: String(values[i][col.display]),
+        salt: String(values[i][col.salt]),
+        storedHash: String(values[i][col.hash]),
+        active: String(values[i][col.active]).toLowerCase() !== 'false'
+      };
+      break;
+    }
+  }
+
+  // Mensaje idéntico para usuario inexistente, inactivo o contraseña incorrecta.
+  if (!account || !account.active) throw new Error('Usuario o contraseña incorrectos.');
+
+  const parts = account.storedHash.split(' Devuelve 256 bits codificados en Base64.
+ * Iteraciones guardadas junto al hash para permitir futuras migraciones.
+ */
+function pbkdf2Sha256Base64_(password, salt, iterations) {
+  const passwordBytes = Utilities.newBlob(password).getBytes();
+  const saltBytes = Utilities.newBlob(salt).getBytes();
+  const blockInput = saltBytes.concat([0, 0, 0, 1]);
+  let u = Utilities.computeHmacSha256Signature(blockInput, passwordBytes);
+  let derived = u.slice();
+
+  for (let i = 1; i < iterations; i++) {
+    u = Utilities.computeHmacSha256Signature(u, passwordBytes);
+    for (let j = 0; j < derived.length; j++) {
+      derived[j] = (derived[j] ^ u[j]);
+    }
+  }
+  return Utilities.base64Encode(derived);
+}
+);
+  if (parts.length !== 3 || parts[0] !== 'pbkdf2_sha256') {
+    throw new Error('La credencial almacenada requiere revisión administrativa.');
+  }
+  const iterations = Number(parts[1]);
+  if (!Number.isInteger(iterations) || iterations < 100000 || iterations > 500000) {
+    throw new Error('La configuración de la credencial no es válida.');
+  }
+
+  const calculated = pbkdf2Sha256Base64_(password, account.salt, iterations);
+  if (!constantTimeStringEquals_(calculated, parts[2])) {
+    throw new Error('Usuario o contraseña incorrectos.');
+  }
+
+  const familyValues = familySheet.getDataRange().getValues();
+  const familyHeaders = familyValues[0];
+  const familyIdCol = familyHeaders.indexOf('family_id');
+  const familyActiveCol = familyHeaders.indexOf('active');
+  const familyNameCol = familyHeaders.indexOf('family_name');
+  if (familyIdCol < 0 || familyActiveCol < 0 || familyNameCol < 0) {
+    throw new Error('La estructura de Families no es válida.');
+  }
+
+  let familyName = '';
+  let familyIsActive = false;
+  for (let i = 1; i < familyValues.length; i++) {
+    if (String(familyValues[i][familyIdCol]) === account.familyId) {
+      familyName = String(familyValues[i][familyNameCol]);
+      familyIsActive = String(familyValues[i][familyActiveCol]).toLowerCase() !== 'false';
+      break;
+    }
+  }
+  if (!familyIsActive) throw new Error('Usuario o contraseña incorrectos.');
+
+  const token = createSessionToken_();
+  const now = new Date();
+  const expiresAt = new Date(now.getTime() + 12 * 60 * 60 * 1000);
+  const sessionHeaders = sessionsSheet.getDataRange().getValues()[0];
+  const session = {
+    session_id: Utilities.getUuid(),
+    sitter_id: account.id,
+    family_id: account.familyId,
+    token_hash: sha256Base64_(token),
+    created_at: now,
+    expires_at: expiresAt,
+    revoked: false
+  };
+  sessionsSheet.appendRow(sessionHeaders.map(function(header) {
+    return Object.prototype.hasOwnProperty.call(session, header) ? session[header] : '';
+  }));
+
+  return {
+    sessionToken: token,
+    displayName: account.displayName,
+    familyName: familyName,
+    expiresAt: expiresAt.toISOString()
+  };
+}
+
+/** Valida token, expiración, revocación y estado actual de cuenta/familia. */
+function validateSitterSession_(token) {
+  if (typeof token !== 'string' || token.length < 30 || token.length > 256) return null;
+
+  const config = getPetSitterConfig_();
+  const spreadsheet = SpreadsheetApp.openById(config.spreadsheetId);
+  const sessionsSheet = spreadsheet.getSheetByName('Sessions');
+  const sittersSheet = spreadsheet.getSheetByName('PetSitters');
+  const familiesSheet = spreadsheet.getSheetByName('Families');
+  if (!sessionsSheet || !sittersSheet || !familiesSheet) return null;
+
+  const sessionValues = sessionsSheet.getDataRange().getValues();
+  const sh = sessionValues[0];
+  const sc = {
+    sitter: sh.indexOf('sitter_id'), family: sh.indexOf('family_id'),
+    hash: sh.indexOf('token_hash'), expires: sh.indexOf('expires_at'),
+    revoked: sh.indexOf('revoked')
+  };
+  if (Object.keys(sc).some(function(k) { return sc[k] < 0; })) return null;
+
+  const tokenHash = sha256Base64_(token);
+  let session = null;
+  for (let i = 1; i < sessionValues.length; i++) {
+    if (constantTimeStringEquals_(String(sessionValues[i][sc.hash]), tokenHash)) {
+      session = {
+        sitterId: String(sessionValues[i][sc.sitter]),
+        familyId: String(sessionValues[i][sc.family]),
+        expiresAt: new Date(sessionValues[i][sc.expires]),
+        revoked: String(sessionValues[i][sc.revoked]).toLowerCase() === 'true'
+      };
+      break;
+    }
+  }
+  if (!session || session.revoked || isNaN(session.expiresAt.getTime()) ||
+      session.expiresAt.getTime() <= Date.now()) return null;
+
+  if (!isActiveRecord_(sittersSheet, 'sitter_id', session.sitterId) ||
+      !isActiveRecord_(familiesSheet, 'family_id', session.familyId)) return null;
+
+  return { sitterId: session.sitterId, familyId: session.familyId };
+}
+
+/** Revoca la sesión correspondiente al token presentado. */
+function revokeSitterSession_(token) {
+  if (typeof token !== 'string' || token.length < 30 || token.length > 256) return false;
+  const config = getPetSitterConfig_();
+  const sheet = SpreadsheetApp.openById(config.spreadsheetId).getSheetByName('Sessions');
+  if (!sheet) return false;
+
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0];
+  const hashCol = headers.indexOf('token_hash');
+  const revokedCol = headers.indexOf('revoked');
+  if (hashCol < 0 || revokedCol < 0) return false;
+
+  const targetHash = sha256Base64_(token);
+  for (let i = 1; i < values.length; i++) {
+    if (constantTimeStringEquals_(String(values[i][hashCol]), targetHash)) {
+      sheet.getRange(i + 1, revokedCol + 1).setValue(true);
+      return true;
+    }
+  }
+  return false;
+}
+
+function createSessionToken_() {
+  // Combina cuatro UUID independientes para un token opaco de alta entropía.
+  return Utilities.getUuid().replace(/-/g, '') +
+    Utilities.getUuid().replace(/-/g, '') +
+    Utilities.getUuid().replace(/-/g, '') +
+    Utilities.getUuid().replace(/-/g, '');
+}
+
+function sha256Base64_(value) {
+  const digest = Utilities.computeDigest(
+    Utilities.DigestAlgorithm.SHA_256,
+    value,
+    Utilities.Charset.UTF_8
+  );
+  return Utilities.base64Encode(digest);
+}
+
+function constantTimeStringEquals_(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string' || a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+
+function isActiveRecord_(sheet, idHeader, idValue) {
+  const values = sheet.getDataRange().getValues();
+  const headers = values[0];
+  const idCol = headers.indexOf(idHeader);
+  const activeCol = headers.indexOf('active');
+  if (idCol < 0 || activeCol < 0) return false;
+  for (let i = 1; i < values.length; i++) {
+    if (String(values[i][idCol]) === idValue) {
+      return String(values[i][activeCol]).toLowerCase() !== 'false';
+    }
+  }
+  return false;
 }
 
 /**
