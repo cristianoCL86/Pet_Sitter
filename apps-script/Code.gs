@@ -368,25 +368,7 @@ function authenticateSitter_(username, password) {
   // Mensaje idéntico para usuario inexistente, inactivo o contraseña incorrecta.
   if (!account || !account.active) throw new Error('Usuario o contraseña incorrectos.');
 
-  const parts = account.storedHash.split(' Devuelve 256 bits codificados en Base64.
- * Iteraciones guardadas junto al hash para permitir futuras migraciones.
- */
-function pbkdf2Sha256Base64_(password, salt, iterations) {
-  const passwordBytes = Utilities.newBlob(password).getBytes();
-  const saltBytes = Utilities.newBlob(salt).getBytes();
-  const blockInput = saltBytes.concat([0, 0, 0, 1]);
-  let u = Utilities.computeHmacSha256Signature(blockInput, passwordBytes);
-  let derived = u.slice();
-
-  for (let i = 1; i < iterations; i++) {
-    u = Utilities.computeHmacSha256Signature(u, passwordBytes);
-    for (let j = 0; j < derived.length; j++) {
-      derived[j] = (derived[j] ^ u[j]);
-    }
-  }
-  return Utilities.base64Encode(derived);
-}
-);
+  const parts = account.storedHash.split('$');
   if (parts.length !== 3 || parts[0] !== 'pbkdf2_sha256') {
     throw new Error('La credencial almacenada requiere revisión administrativa.');
   }
