@@ -209,3 +209,129 @@ function registerInitialFamilyLuluMaya() {
   Logger.log(JSON.stringify(result));
   return result;
 }
+
+
+/**
+ * Alta administrativa de un Pet Sitter.
+ *
+ * Antes de ejecutar, configurar temporalmente estas Script Properties:
+ * PROVISION_FAMILY_NAME, PROVISION_SITTER_USERNAME,
+ * PROVISION_SITTER_DISPLAY_NAME y PROVISION_SITTER_PASSWORD.
+ *
+ * La contraseña temporal se elimina de Script Properties al comenzar.
+ * Esta función NO debe exponerse mediante doGet/doPost.
+ */
+function adminCreateSitterFromProperties() {
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+
+  const props = PropertiesService.getScriptProperties();
+  const familyName = props.getProperty('PROVISION_FAMILY_NAME');
+  const username = props.getProperty('PROVISION_SITTER_USERNAME');
+  const displayName = props.getProperty('PROVISION_SITTER_DISPLAY_NAME');
+  const password = props.getProperty('PROVISION_SITTER_PASSWORD');
+
+  // Elimina de inmediato los datos de aprovisionamiento, especialmente la contraseña.
+  props.deleteProperty('PROVISION_FAMILY_NAME');
+  props.deleteProperty('PROVISION_SITTER_USERNAME');
+  props.deleteProperty('PROVISION_SITTER_DISPLAY_NAME');
+  props.deleteProperty('PROVISION_SITTER_PASSWORD');
+
+  try {
+    if (!familyName || !username || !displayName || !password) {
+      throw new Error('Faltan propiedades temporales de aprovisionamiento. Configúralas nuevamente.');
+    }
+    if (!/^[A-Za-z0-9._-]{4,40}$/.test(username)) {
+      throw new Error('El usuario debe tener entre 4 y 40 caracteres: letras, números, punto, guion o guion bajo.');
+    }
+    if (password.length < 12) {
+      throw new Error('La contraseña debe tener al menos 12 caracteres. Configura una nueva contraseña temporal y vuelve a ejecutar.');
+    }
+
+    const config = getPetSitterConfig_();
+    const spreadsheet = SpreadsheetApp.openById(config.spreadsheetId);
+    const familySheet = spreadsheet.getSheetByName('Families');
+    const sitterSheet = spreadsheet.getSheetByName('PetSitters');
+    if (!familySheet || !sitterSheet) {
+      throw new Error('No existen las pestañas requeridas. Ejecuta setupPetSitterSheets().');
+    }
+
+    const familyValues = familySheet.getDataRange().getValues();
+    const familyHeaders = familyValues[0];
+    const familyNameCol = familyHeaders.indexOf('family_name');
+    const familyIdCol = familyHeaders.indexOf('family_id');
+    const activeCol = familyHeaders.indexOf('active');
+    if (familyNameCol < 0 || familyIdCol < 0 || activeCol < 0) {
+      throw new Error('La pestaña Families no tiene los encabezados esperados.');
+    }
+
+    let familyId = '';
+    for (let i = 1; i < familyValues.length; i++) {
+      if (String(familyValues[i][familyNameCol]).trim() === familyName &&
+          String(familyValues[i][activeCol]).toLowerCase() !== 'false') {
+        familyId = String(familyValues[i][familyIdCol]);
+        break;
+      }
+    }
+    if (!familyId) throw new Error('No se encontró una familia activa con ese nombre.');
+
+    const sitterValues = sitterSheet.getDataRange().getValues();
+    const sitterHeaders = sitterValues[0];
+    const usernameCol = sitterHeaders.indexOf('username');
+    const familyCol = sitterHeaders.indexOf('family_id');
+    if (usernameCol < 0 || familyCol < 0) {
+      throw new Error('La pestaña PetSitters no tiene los encabezados esperados.');
+    }
+
+    for (let i = 1; i < sitterValues.length; i++) {
+      if (String(sitterValues[i][usernameCol]).toLowerCase() === username.toLowerCase() &&
+          String(sitterValues[i][familyCol]) === familyId) {
+        throw new Error('Ese nombre de usuario ya existe para esta familia.');
+      }
+    }
+
+    const salt = Utilities.getUuid() + Utilities.getUuid();
+    const iterations = 120000;
+    const passwordHash = pbkdf2Sha256Base64_(password, salt, iterations);
+    const sitter = {
+      sitter_id: Utilities.getUuid(),
+      family_id: familyId,
+      username: username,
+      display_name: displayName,
+      password_salt: salt,
+      password_hash: 'pbkdf2_sha256$' + iterations + '$' + passwordHash,
+      active: true,
+      created_at: new Date()
+    };
+
+    sitterSheet.appendRow(sitterHeaders.map(function(header) {
+      return Object.prototype.hasOwnProperty.call(sitter, header) ? sitter[header] : '';
+    }));
+
+    Logger.log('Cuenta Pet Sitter creada correctamente. Usuario: ' + username +
+      '. Familia: ' + familyName + '. No se registra ni se muestra la contraseña.');
+    return { created: true, username: username, familyName: familyName };
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+/**
+ * PBKDF2-HMAC-SHA256. Devuelve 256 bits codificados en Base64.
+ * Iteraciones guardadas junto al hash para permitir futuras migraciones.
+ */
+function pbkdf2Sha256Base64_(password, salt, iterations) {
+  const passwordBytes = Utilities.newBlob(password).getBytes();
+  const saltBytes = Utilities.newBlob(salt).getBytes();
+  const blockInput = saltBytes.concat([0, 0, 0, 1]);
+  let u = Utilities.computeHmacSha256Signature(blockInput, passwordBytes);
+  let derived = u.slice();
+
+  for (let i = 1; i < iterations; i++) {
+    u = Utilities.computeHmacSha256Signature(u, passwordBytes);
+    for (let j = 0; j < derived.length; j++) {
+      derived[j] = (derived[j] ^ u[j]);
+    }
+  }
+  return Utilities.base64Encode(derived);
+}
