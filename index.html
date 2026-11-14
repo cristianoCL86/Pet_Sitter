@@ -10,9 +10,23 @@
 <body>
   <header class="topbar">
     <a class="brand" href="#"><span class="brand-mark">🐾</span><span>Pet Sitter<small>Bitácora de cuidado</small></span></a>
-    <span class="demo-pill">Modo demostración</span>
+    <div class="topbar-actions"><span id="sessionLabel" class="session-label" hidden></span><button id="logoutButton" class="logout-button" type="button" hidden>Cerrar sesión</button><span class="demo-pill">Modo de prueba</span></div>
   </header>
   <main class="container">
+    <section id="loginPanel" class="panel login-panel">
+      <p class="eyebrow">ACCESO PRIVADO</p>
+      <h1>Bienvenido a Pet Sitter</h1>
+      <p class="login-intro">Ingresa con tu cuenta de cuidador para acceder a la bitácora familiar.</p>
+      <form id="loginForm">
+        <label class="field-label" for="loginUsername">Usuario</label>
+        <input id="loginUsername" name="username" type="text" autocomplete="username" required>
+        <label class="field-label" for="loginPassword">Contraseña</label>
+        <input id="loginPassword" name="password" type="password" autocomplete="current-password" required>
+        <button id="loginButton" class="primary-button login-submit" type="submit">Iniciar sesión</button>
+        <p id="loginMessage" class="login-message" role="status" aria-live="polite"></p>
+      </form>
+    </section>
+    <div id="appContent" hidden>
     <section class="welcome">
       <p class="eyebrow">BITÁCORA FAMILIAR</p>
       <h1>Un día lleno de cuidados.</h1>
@@ -42,6 +56,7 @@
       <div id="historyList" class="history-list"><p class="empty-state">Todavía no hay publicaciones guardadas en esta demostración.</p></div>
     </section>
     <footer>Pet Sitter · Cada cuidado cuenta ❤️</footer>
+    </div>
   </main>
   <script src="js/pets.js"></script>
   <script src="js/api.js"></script>
