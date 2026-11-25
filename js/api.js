@@ -50,13 +50,17 @@
         password
       });
 
-      if (!data.session || typeof data.session.token !== "string" ||
-          !data.session.token) {
+      const sessionToken = data.session &&
+        (typeof data.session.token === "string" && data.session.token
+          ? data.session.token
+          : data.session.sessionToken);
+
+      if (typeof sessionToken !== "string" || !sessionToken) {
         throw new Error("La respuesta de inicio de sesión no contiene una sesión válida.");
       }
 
       currentSession = {
-        token: data.session.token,
+        token: sessionToken,
         displayName: data.session.displayName || "",
         familyName: data.session.familyName || "",
         expiresAt: data.session.expiresAt || ""
