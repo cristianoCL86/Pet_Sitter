@@ -105,21 +105,49 @@
   function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   }
-  $("saveEntry").addEventListener("click", () => {
+  $("saveEntry").addEventListener("click", async () => {
+    const saveButton = $("saveEntry");
+    const saveMessage = $("saveMessage");
+
     if (!window.PetSitterAPI.isAuthenticated()) {
       showLogin("Tu sesión no está activa. Inicia sesión nuevamente.");
       return;
     }
+
     const entry = {
       date: $("entryDate").value,
       description: $("dayDescription").value.trim(),
-      pets: pets.map(p => ({ name:p.name, ...state.get(p.id) })),
-      photoCount: photoFiles.length
+      pets: pets.map(p => ({ name: p.name, ...state.get(p.id) }))
     };
-    if (!entry.date) { $("saveMessage").textContent = "Selecciona una fecha."; return; }
-    history.push(entry);
-    renderHistory();
-    $("saveMessage").textContent = "Registro agregado a la demostración local. Todavía no se guarda en la nube.";
+
+    if (!entry.date) {
+      saveMessage.textContent = "Selecciona una fecha.";
+      return;
+    }
+
+    if (entry.description.length > 250) {
+      saveMessage.textContent = "La descripción no puede superar los 250 caracteres.";
+      return;
+    }
+
+    if (!entry.pets.length) {
+      saveMessage.textContent = "No hay mascotas disponibles para registrar.";
+      return;
+    }
+
+    saveButton.disabled = true;
+    saveMessage.textContent = "Guardando publicación…";
+
+    try {
+      await window.PetSitterAPI.saveEntry(entry);
+      history.push(entry);
+      renderHistory();
+      saveMessage.textContent = "Publicación guardada correctamente en la nube. Las fotografías aún no se han cargado.";
+    } catch (error) {
+      saveMessage.textContent = error.message || "No fue posible guardar la publicación.";
+    } finally {
+      saveButton.disabled = false;
+    }
   });
   renderPets();
 })();
