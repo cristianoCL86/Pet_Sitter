@@ -90,6 +90,22 @@
       return data.entry;
     },
 
+    async getEntries() {
+      if (!currentSession || !currentSession.token) {
+        throw new Error("Tu sesión no está activa. Inicia sesión nuevamente.");
+      }
+
+      const data = await request("getEntries", {
+        token: currentSession.token
+      });
+
+      if (!Array.isArray(data.entries)) {
+        throw new Error("El servidor devolvió un historial no válido.");
+      }
+
+      return data.entries;
+    },
+
     isAuthenticated() {
       return Boolean(currentSession && currentSession.token);
     },
