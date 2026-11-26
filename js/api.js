@@ -73,6 +73,23 @@
       };
     },
 
+    async saveEntry(entry) {
+      if (!currentSession || !currentSession.token) {
+        throw new Error("Tu sesión no está activa. Inicia sesión nuevamente.");
+      }
+
+      if (!entry || typeof entry !== "object" || Array.isArray(entry)) {
+        throw new Error("Los datos de la publicación no son válidos.");
+      }
+
+      const data = await request("saveEntry", {
+        token: currentSession.token,
+        entry
+      });
+
+      return data.entry;
+    },
+
     isAuthenticated() {
       return Boolean(currentSession && currentSession.token);
     },
