@@ -36,6 +36,7 @@
         $("loginPassword").value
       );
       showApp(session);
+      await loadHistory();
     } catch (error) {
       showLogin(error.message || "No fue posible iniciar sesión.");
     } finally {
@@ -98,9 +99,29 @@
     });
   });
   function renderHistory() {
-    $("historyList").innerHTML = history.length ? history.slice().reverse().map(entry =>
-      `<article class="history-entry"><time>${entry.date}</time><p>${escapeHtml(entry.description || "Sin descripción.")}</p><small>${entry.pets.map(p=>p.name).join(" · ")}</small></article>`
-    ).join("") : '<p class="empty-state">Todavía no hay publicaciones guardadas en esta demostración.</p>';
+    const ordered = history.slice().sort((a, b) => {
+      const dateComparison = String(b.date).localeCompare(String(a.date));
+      if (dateComparison !== 0) return dateComparison;
+      return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
+    });
+
+    $("historyList").innerHTML = ordered.length ? ordered.map(entry =>
+      `<article class="history-entry"><time>${escapeHtml(entry.date)}</time><p>${escapeHtml(entry.description || "Sin descripción.")}</p><small>${(entry.pets || []).map(p=>escapeHtml(p.name || p.pet_name || "")).join(" · ")}</small></article>`
+    ).join("") : '<p class="empty-state">Todavía no hay publicaciones guardadas.</p>';
+  }
+
+  async function loadHistory() {
+    const historyList = $("historyList");
+    historyList.innerHTML = '<p class="empty-state">Cargando publicaciones…</p>';
+
+    try {
+      const entries = await window.PetSitterAPI.getEntries();
+      history.splice(0, history.length, ...entries);
+      renderHistory();
+    } catch (error) {
+      historyList.innerHTML = '<p class="empty-state">No fue posible cargar el historial. ' +
+        escapeHtml(error.message || "Inténtalo nuevamente.") + '</p>';
+    }
   }
   function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -139,8 +160,12 @@
     saveMessage.textContent = "Guardando publicación…";
 
     try {
-      await window.PetSitterAPI.saveEntry(entry);
-      history.push(entry);
+      const saved = await window.PetSitterAPI.saveEntry(entry);
+      history.push({
+        ...entry,
+        entryId: saved && saved.entryId ? saved.entryId : "",
+        createdAt: saved && saved.createdAt ? saved.createdAt : new Date().toISOString()
+      });
       renderHistory();
       saveMessage.textContent = "Publicación guardada correctamente en la nube. Las fotografías aún no se han cargado.";
     } catch (error) {
