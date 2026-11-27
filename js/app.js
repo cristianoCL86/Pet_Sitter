@@ -17,8 +17,7 @@
     } catch (_) {
       familyReadToken = "";
     }
-    // Retirar el token de la barra de direcciones después de leerlo.
-    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+    // Mantener el token en el fragmento para permitir recargar y reutilizar el enlace privado.
   }
 
   function showLogin(message = "") {
