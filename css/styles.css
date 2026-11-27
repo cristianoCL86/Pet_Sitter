@@ -133,8 +133,10 @@ button:disabled{opacity:.6;cursor:wait}
 .sim-medicine i{position:absolute;right:-2px;top:-4px;display:grid;place-items:center;width:19px;height:19px;border-radius:50%;background:#526176;color:#fff;font-size:12px;font-style:normal;font-weight:800}
 .sim-medicine.is-given i{background:#00bd83}
 .sim-walks{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:22px;padding-top:13px;border-top:1px solid #344258}
-.sim-walk-status{display:flex;align-items:center;justify-content:space-between;gap:7px;min-width:0;color:#b9c7dc;font-size:11px}
+.sim-walk-status{display:flex;align-items:center;justify-content:flex-start;gap:8px;min-width:0;color:#b9c7dc;font-size:11px}
+.sim-walk-label{display:inline-flex;align-items:center;gap:3px;white-space:nowrap}
 .sim-walk-status strong{font-weight:700}
+.sim-needs-icons{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;flex:0 0 auto}
 .sim-walk-status.is-done strong{color:#00d39a}
 .sim-walk-status.is-pending strong{color:#f6ad27}
 .sim-needs-icons{display:flex;align-items:center;gap:4px;white-space:nowrap}
