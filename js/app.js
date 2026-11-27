@@ -189,8 +189,10 @@
       return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
     });
 
-    const checkLabel = value =>
-      value === true || String(value).toLowerCase() === "true" ? "Sí" : "No";
+    const checkLabel = value => {
+      if (value === undefined || value === null || value === "") return "No registrado";
+      return value === true || String(value).toLowerCase() === "true" ? "Sí" : "No";
+    };
 
     const petIcon = () => "🐾";
 
