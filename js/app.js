@@ -183,6 +183,70 @@
     });
   }
   $("dayDescription").addEventListener("input", e => $("charCount").textContent = e.target.value.length);
+  async function compressPhotoToBase64(file) {
+    if (!file || !file.type || !file.type.startsWith("image/")) {
+      throw new Error("Uno de los archivos seleccionados no es una imagen.");
+    }
+
+    if (typeof createImageBitmap !== "function") {
+      throw new Error("Este navegador no permite procesar las fotografías.");
+    }
+
+    const bitmap = await createImageBitmap(file);
+    let width = bitmap.width;
+    let height = bitmap.height;
+    const maxDimension = 1600;
+
+    if (Math.max(width, height) > maxDimension) {
+      const scale = maxDimension / Math.max(width, height);
+      width = Math.round(width * scale);
+      height = Math.round(height * scale);
+    }
+
+    let blob = null;
+
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+
+      const context = canvas.getContext("2d");
+      if (!context) {
+        bitmap.close();
+        throw new Error("No fue posible procesar una fotografía.");
+      }
+
+      context.drawImage(bitmap, 0, 0, width, height);
+      const quality = Math.max(0.45, 0.82 - (attempt % 5) * 0.09);
+
+      blob = await new Promise(resolve =>
+        canvas.toBlob(resolve, "image/jpeg", quality)
+      );
+
+      if (blob && blob.size <= 300000) break;
+
+      if (attempt === 4 || attempt === 9) {
+        width = Math.max(480, Math.round(width * 0.8));
+        height = Math.max(480, Math.round(height * 0.8));
+      }
+    }
+
+    bitmap.close();
+
+    if (!blob || blob.size > 300000) {
+      throw new Error("Una fotografía supera el tamaño permitido incluso después de comprimirla.");
+    }
+
+    const dataUrl = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(new Error("No fue posible leer una fotografía."));
+      reader.readAsDataURL(blob);
+    });
+
+    return String(dataUrl).split(",")[1];
+  }
+
   $("photos").addEventListener("change", e => {
     photoFiles.splice(0, photoFiles.length, ...Array.from(e.target.files || []));
     $("photoPreview").innerHTML = "";
@@ -389,13 +453,43 @@
 
     try {
       const saved = await window.PetSitterAPI.saveEntry(entry);
+      const savedEntryId = saved && saved.entryId ? saved.entryId : "";
+
+      let uploadedPhotos = 0;
+      let photoError = "";
+
+      if (photoFiles.length && !savedEntryId) {
+        photoError = "La publicación se guardó, pero el servidor no devolvió su identificador para asociar las fotografías.";
+      } else {
+        for (const file of photoFiles) {
+          try {
+            const base64 = await compressPhotoToBase64(file);
+            await window.PetSitterAPI.uploadPhoto(savedEntryId, base64, "image/jpeg");
+            uploadedPhotos++;
+          } catch (error) {
+            photoError = error.message || "No fue posible cargar una de las fotografías.";
+            break;
+          }
+        }
+      }
+
       history.push({
         ...entry,
-        entryId: saved && saved.entryId ? saved.entryId : "",
+        entryId: savedEntryId,
         createdAt: saved && saved.createdAt ? saved.createdAt : new Date().toISOString()
       });
       renderHistory();
-      saveMessage.textContent = "Publicación guardada correctamente en la nube. Las fotografías aún no se han cargado.";
+
+      if (!photoFiles.length) {
+        saveMessage.textContent = "Publicación guardada correctamente en la nube.";
+      } else if (!photoError && uploadedPhotos === photoFiles.length) {
+        saveMessage.textContent = `Publicación y ${uploadedPhotos} fotografía(s) guardadas correctamente.`;
+        photoFiles.length = 0;
+        $("photos").value = "";
+        $("photoPreview").innerHTML = "";
+      } else {
+        saveMessage.textContent = `Publicación guardada. Se cargaron ${uploadedPhotos} de ${photoFiles.length} fotografías. ${photoError}`;
+      }
     } catch (error) {
       saveMessage.textContent = error.message || "No fue posible guardar la publicación.";
     } finally {
