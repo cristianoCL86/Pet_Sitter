@@ -240,7 +240,7 @@
                     <div class="sim-paw">🐾</div>
                     <div class="sim-pet-name">
                       <h5>${escapeHtml(name)}</h5>
-                      <small>${theme === "lulu" ? "Perrita café" : theme === "maya" ? "Perrita blanca" : "Registro de cuidado"}</small>
+                      
                     </div>
                   </header>
 
@@ -255,7 +255,7 @@
                       <i>${medicine ? "✓" : "–"}</i>
                     </div>
                     <div class="sim-gauge sim-gauge--food" style="--progress:${food}">
-                      <div class="sim-gauge-center"><span>🍴</span></div>
+                      <div class="sim-gauge-center"><span>🥩</span></div>
                       <span class="sim-gauge-label">${food}%</span>
                       <small>Comida</small>
                     </div>
