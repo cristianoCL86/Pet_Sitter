@@ -203,14 +203,14 @@
     };
 
     const needsIcons = (pee, poop) =>
-      (checkLabel(pee) ? '<span class="sim-need-icon" title="Hizo pipí">💧</span>' : '') +
+      (checkLabel(pee) ? '<span class="sim-need-icon" title="Hizo pipí">🚽</span>' : '') +
       (checkLabel(poop) ? '<span class="sim-need-icon" title="Hizo popó">💩</span>' : '');
 
     const walkSummary = (period, done, pee, poop, label, icon) => {
       const performed = checkLabel(done);
       return `
         <div class="sim-walk-status ${performed ? "is-done" : "is-pending"}">
-          <span>${icon} ${label}: <strong>${performed ? "Realizado" : "Pendiente"}</strong></span>
+          <span class="sim-walk-label">${icon} ${label}: <strong>${performed ? "Realizado" : "Pendiente"}</strong></span>
           <span class="sim-needs-icons">${performed ? needsIcons(pee, poop) : ""}</span>
         </div>`;
     };
