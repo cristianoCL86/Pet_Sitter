@@ -106,6 +106,20 @@
       return data.entries;
     },
 
+    async getFamilyEntries(readToken) {
+      if (typeof readToken !== "string" || !readToken || readToken.length > 512) {
+        throw new Error("El enlace familiar no es válido.");
+      }
+
+      const data = await request("getFamilyEntries", { readToken });
+
+      if (!Array.isArray(data.entries)) {
+        throw new Error("El servidor devolvió un historial familiar no válido.");
+      }
+
+      return data.entries;
+    },
+
     isAuthenticated() {
       return Boolean(currentSession && currentSession.token);
     },
