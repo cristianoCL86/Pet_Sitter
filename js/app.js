@@ -79,7 +79,7 @@
         <span class="family-form-count">${pets.length} fichas</span>
       </div>
       ${pets.map(pet => {
-        state.set(pet.id, { walkMorning:false, walkAfternoon:false, medicine:false, food:"0%", water:"0%" });
+        state.set(pet.id, { walkMorning:false, peeMorning:false, poopMorning:false, walkAfternoon:false, peeAfternoon:false, poopAfternoon:false, medicine:false, food:"0%", water:"0%" });
         const theme = pet.id === "lulu" ? "lulu" : pet.id === "maya" ? "maya" : "default";
         const description = pet.id === "lulu" ? "Perrita café" : pet.id === "maya" ? "Perrita blanca" : "Ficha individual";
         return `<article class="pet-card pet-card--${theme}" data-pet="${pet.id}">
@@ -109,15 +109,29 @@
             <input type="checkbox" data-field="medicine"><span class="pet-toggle-control"></span>
           </label>
 
-          <div class="pet-walk-grid">
-            <label class="pet-walk-option">
-              <span><span>🌅</span><strong>Paseo mañana</strong></span>
-              <input type="checkbox" data-field="walkMorning"><span class="pet-check-control">✓</span>
-            </label>
-            <label class="pet-walk-option">
-              <span><span>🌇</span><strong>Paseo tarde</strong></span>
-              <input type="checkbox" data-field="walkAfternoon"><span class="pet-check-control">✓</span>
-            </label>
+          <div class="pet-walk-details">
+            <section class="pet-walk-card" data-walk-period="Morning">
+              <label class="pet-walk-option">
+                <span><span>🌅</span><strong>Paseo de mañana</strong></span>
+                <input type="checkbox" data-field="walkMorning"><span class="pet-check-control">✓</span>
+              </label>
+              <div class="pet-needs-row">
+                <span class="pet-needs-caption">Necesidades</span>
+                <label class="pet-need-option"><input type="checkbox" data-field="peeMorning" disabled><span>💧 Pipí</span></label>
+                <label class="pet-need-option"><input type="checkbox" data-field="poopMorning" disabled><span>💩 Popó</span></label>
+              </div>
+            </section>
+            <section class="pet-walk-card" data-walk-period="Afternoon">
+              <label class="pet-walk-option">
+                <span><span>🌇</span><strong>Paseo de tarde</strong></span>
+                <input type="checkbox" data-field="walkAfternoon"><span class="pet-check-control">✓</span>
+              </label>
+              <div class="pet-needs-row">
+                <span class="pet-needs-caption">Necesidades</span>
+                <label class="pet-need-option"><input type="checkbox" data-field="peeAfternoon" disabled><span>💧 Pipí</span></label>
+                <label class="pet-need-option"><input type="checkbox" data-field="poopAfternoon" disabled><span>💩 Popó</span></label>
+              </div>
+            </section>
           </div>
         </article>`;
       }).join("")}
@@ -131,6 +145,18 @@
       if (!field || !pet) return;
       if (event.target.type === "checkbox") {
         pet[field] = event.target.checked;
+        if (field === "walkMorning" || field === "walkAfternoon") {
+          const period = field === "walkMorning" ? "Morning" : "Afternoon";
+          const walkCard = event.target.closest(".pet-walk-card");
+          const needs = walkCard ? walkCard.querySelectorAll('[data-field="pee' + period + '"], [data-field="poop' + period + '"]') : [];
+          needs.forEach(control => {
+            control.disabled = !event.target.checked;
+            if (!event.target.checked) {
+              control.checked = false;
+              pet[control.dataset.field] = false;
+            }
+          });
+        }
       } else if (event.target.type === "range") {
         pet[field] = event.target.value + "%";
         const output = $(event.target.dataset.output);
@@ -166,10 +192,7 @@
     const checkLabel = value =>
       value === true || String(value).toLowerCase() === "true" ? "Sí" : "No";
 
-    const petIcon = name => {
-      const normalized = String(name || "").toLowerCase();
-      return normalized === "lulu" ? "🐶" : normalized === "maya" ? "🐩" : "🐾";
-    };
+    const petIcon = () => "🐾";
 
     const petTheme = name => {
       const normalized = String(name || "").toLowerCase();
@@ -208,7 +231,7 @@
               return `
                 <section class="history-pet history-pet--${theme}">
                   <div class="history-pet-heading">
-                    <span class="history-pet-avatar" aria-hidden="true">${petIcon(name)}</span>
+                    <span class="history-pet-avatar" aria-hidden="true">${petIcon()}</span>
                     <div>
                       <h5>${escapeHtml(name)}</h5>
                       <small>Ficha de cuidado</small>
@@ -225,6 +248,26 @@
                       <span class="pet-care-icon" aria-hidden="true">🌇</span>
                       <span class="pet-care-label">Paseo tarde</span>
                       <strong>${checkLabel(p.walkAfternoon)}</strong>
+                    </div>
+                    <div class="pet-care-item">
+                      <span class="pet-care-icon" aria-hidden="true">💧</span>
+                      <span class="pet-care-label">Pipí mañana</span>
+                      <strong>${checkLabel(p.peeMorning)}</strong>
+                    </div>
+                    <div class="pet-care-item">
+                      <span class="pet-care-icon" aria-hidden="true">💩</span>
+                      <span class="pet-care-label">Popó mañana</span>
+                      <strong>${checkLabel(p.poopMorning)}</strong>
+                    </div>
+                    <div class="pet-care-item">
+                      <span class="pet-care-icon" aria-hidden="true">💧</span>
+                      <span class="pet-care-label">Pipí tarde</span>
+                      <strong>${checkLabel(p.peeAfternoon)}</strong>
+                    </div>
+                    <div class="pet-care-item">
+                      <span class="pet-care-icon" aria-hidden="true">💩</span>
+                      <span class="pet-care-label">Popó tarde</span>
+                      <strong>${checkLabel(p.poopAfternoon)}</strong>
                     </div>
                     <div class="pet-care-item">
                       <span class="pet-care-icon" aria-hidden="true">💊</span>
