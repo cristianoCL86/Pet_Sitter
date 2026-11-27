@@ -145,3 +145,10 @@ button:disabled{opacity:.6;cursor:wait}
 .sim-description>span{font-size:14px}
 .sim-description p{margin:0;font-size:12px;line-height:1.45}
 @media(max-width:620px){.sim-vitals{gap:15px;padding-top:20px}.sim-walks{grid-template-columns:1fr;gap:9px}.sim-walk-status{font-size:12px}.history-pet-sim{padding:15px}}
+
+
+/* Fotografías privadas asociadas a cada publicación */
+.history-photos{display:flex;flex-wrap:wrap;gap:9px;margin-top:14px}
+.history-photo{display:block;width:clamp(110px,28%,190px);height:150px;object-fit:cover;border-radius:12px;border:1px solid #e9e2da;background:#f5f1ec}
+.history-photos-error{font-size:11px;color:#9b6b58}
+@media(max-width:620px){.history-photo{width:calc(50% - 5px);height:125px}}
