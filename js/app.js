@@ -346,8 +346,71 @@
           </div>
         </section>
         ${entry.description ? `<div class="sim-description"><span>📝</span><p>${escapeHtml(entry.description)}</p></div>` : ""}
+        ${entry.entryId ? `<div class="history-photos" data-photo-entry="${escapeHtml(entry.entryId)}" aria-label="Fotografías de esta publicación"></div>` : ""}
       </article>
     `).join("") : '<p class="empty-state">Todavía no hay publicaciones guardadas.</p>';
+
+    loadVisibleHistoryPhotos();
+  }
+
+  function loadVisibleHistoryPhotos() {
+    const containers = Array.from(document.querySelectorAll("[data-photo-entry]"));
+    if (!containers.length) return;
+
+    const loadPhotos = async container => {
+      if (container.dataset.photoState) return;
+      container.dataset.photoState = "loading";
+
+      try {
+        const entryId = container.dataset.photoEntry;
+        const photos = familyView
+          ? await window.PetSitterAPI.getFamilyEntryPhotos(entryId, familyReadToken)
+          : await window.PetSitterAPI.getEntryPhotos(entryId);
+
+        if (!photos.length) {
+          container.remove();
+          return;
+        }
+
+        photos.forEach(photo => {
+          if (
+            !photo || photo.mimeType !== "image/jpeg" ||
+            typeof photo.base64 !== "string" || !photo.base64 ||
+            photo.base64.length > 420000 ||
+            !/^[A-Za-z0-9+/]+={0,2}$/.test(photo.base64)
+          ) return;
+
+          const image = document.createElement("img");
+          image.className = "history-photo";
+          image.alt = "Fotografía de Lulu y Maya";
+          image.loading = "lazy";
+          image.src = "data:image/jpeg;base64," + photo.base64;
+          container.appendChild(image);
+        });
+
+        if (!container.children.length) container.remove();
+        else container.dataset.photoState = "loaded";
+      } catch (error) {
+        container.dataset.photoState = "error";
+        container.textContent = "No fue posible cargar las fotografías.";
+        container.classList.add("history-photos-error");
+      }
+    };
+
+    if ("IntersectionObserver" in window) {
+      const observer = new IntersectionObserver((observations, currentObserver) => {
+        observations.forEach(observation => {
+          if (observation.isIntersecting) {
+            currentObserver.unobserve(observation.target);
+            loadPhotos(observation.target);
+          }
+        });
+      }, { rootMargin: "200px 0px" });
+
+      containers.forEach(container => observer.observe(container));
+    } else {
+      containers.forEach(loadPhotos);
+    }
   }
 
   async function loadHistory() {
