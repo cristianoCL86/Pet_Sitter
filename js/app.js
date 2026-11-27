@@ -105,9 +105,27 @@
       return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
     });
 
-    $("historyList").innerHTML = ordered.length ? ordered.map(entry =>
-      `<article class="history-entry"><time>${escapeHtml(entry.date)}</time><p>${escapeHtml(entry.description || "Sin descripción.")}</p><small>${(entry.pets || []).map(p=>escapeHtml(p.name || p.pet_name || "")).join(" · ")}</small></article>`
-    ).join("") : '<p class="empty-state">Todavía no hay publicaciones guardadas.</p>';
+    const checkLabel = value =>
+      value === true || String(value).toLowerCase() === "true" ? "Sí" : "No";
+
+    $("historyList").innerHTML = ordered.length ? ordered.map(entry => `
+      <article class="history-entry">
+        <time>${escapeHtml(entry.date)}</time>
+        <p>${escapeHtml(entry.description || "Sin descripción.")}</p>
+        ${(entry.pets || []).map(p => `
+          <section class="history-pet">
+            <h4>${escapeHtml(p.name || p.pet_name || "Mascota")}</h4>
+            <ul>
+              <li>Paseo mañana: ${checkLabel(p.walkMorning)}</li>
+              <li>Paseo tarde: ${checkLabel(p.walkAfternoon)}</li>
+              <li>Medicamentos: ${checkLabel(p.medicine)}</li>
+              <li>Comida: ${escapeHtml(p.food ?? "Sin registro")}</li>
+              <li>Agua: ${escapeHtml(p.water ?? "Sin registro")}</li>
+            </ul>
+          </section>
+        `).join("")}
+      </article>
+    `).join("") : '<p class="empty-state">Todavía no hay publicaciones guardadas.</p>';
   }
 
   async function loadHistory() {
