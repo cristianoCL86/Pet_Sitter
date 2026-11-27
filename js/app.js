@@ -189,16 +189,30 @@
       return String(b.createdAt || "").localeCompare(String(a.createdAt || ""));
     });
 
-    const checkLabel = value => {
-      if (value === undefined || value === null || value === "") return "No registrado";
-      return value === true || String(value).toLowerCase() === "true" ? "Sí" : "No";
-    };
-
-    const petIcon = () => "🐾";
+    const checkLabel = value =>
+      value === true || String(value).toLowerCase() === "true";
 
     const petTheme = name => {
       const normalized = String(name || "").toLowerCase();
       return normalized === "lulu" ? "lulu" : normalized === "maya" ? "maya" : "default";
+    };
+
+    const percentValue = value => {
+      const parsed = Number.parseInt(String(value || "0").replace("%", ""), 10);
+      return Number.isFinite(parsed) ? Math.max(0, Math.min(100, parsed)) : 0;
+    };
+
+    const needsIcons = (pee, poop) =>
+      (checkLabel(pee) ? '<span class="sim-need-icon" title="Hizo pipí">💧</span>' : '') +
+      (checkLabel(poop) ? '<span class="sim-need-icon" title="Hizo popó">💩</span>' : '');
+
+    const walkSummary = (period, done, pee, poop, label, icon) => {
+      const performed = checkLabel(done);
+      return `
+        <div class="sim-walk-status ${performed ? "is-done" : "is-pending"}">
+          <span>${icon} ${label}: <strong>${performed ? "Realizado" : "Pendiente"}</strong></span>
+          <span class="sim-needs-icons">${performed ? needsIcons(pee, poop) : ""}</span>
+        </div>`;
     };
 
     $("historyList").innerHTML = ordered.length ? ordered.map(entry => `
@@ -206,92 +220,57 @@
         <header class="history-entry-head">
           <div class="history-date-icon" aria-hidden="true">📅</div>
           <div>
-            <span class="history-family-label">Familia</span>
-            <h3 class="history-family-title">Lulu y Maya</h3>
+            <span class="history-family-label">Familia Lulu y Maya</span>
+            <h3 class="history-family-title">Bitácora diaria</h3>
             <time>${escapeHtml(entry.date)}</time>
           </div>
         </header>
 
-        <div class="history-description">
-          <span class="history-description-icon" aria-hidden="true">📝</span>
-          <p>${escapeHtml(entry.description || "Sin descripción.")}</p>
-        </div>
-
         <section class="family-history-group">
-          <div class="family-history-heading">
-            <span aria-hidden="true">🏡</span>
-            <div>
-              <h4>Familia Lulu y Maya</h4>
-              <small>Resumen del cuidado</small>
-            </div>
-          </div>
-
           <div class="family-pets-grid">
             ${(entry.pets || []).map(p => {
               const name = p.name || p.pet_name || "Mascota";
               const theme = petTheme(name);
+              const water = percentValue(p.water);
+              const food = percentValue(p.food);
+              const medicine = checkLabel(p.medicine);
               return `
-                <section class="history-pet history-pet--${theme}">
-                  <div class="history-pet-heading">
-                    <span class="history-pet-avatar" aria-hidden="true">${petIcon()}</span>
-                    <div>
+                <section class="history-pet-sim history-pet-sim--${theme}">
+                  <header class="sim-pet-heading">
+                    <div class="sim-paw">🐾</div>
+                    <div class="sim-pet-name">
                       <h5>${escapeHtml(name)}</h5>
-                      <small>Ficha de cuidado</small>
+                      <small>${theme === "lulu" ? "Perrita café" : theme === "maya" ? "Perrita blanca" : "Registro de cuidado"}</small>
+                    </div>
+                  </header>
+
+                  <div class="sim-vitals">
+                    <div class="sim-gauge sim-gauge--water" style="--progress:${water}">
+                      <div class="sim-gauge-center"><span>💧</span></div>
+                      <span class="sim-gauge-label">${water}%</span>
+                      <small>Agua</small>
+                    </div>
+                    <div class="sim-medicine ${medicine ? "is-given" : ""}" title="Medicamento ${medicine ? "administrado" : "no administrado"}">
+                      <span>💊</span>
+                      <i>${medicine ? "✓" : "–"}</i>
+                    </div>
+                    <div class="sim-gauge sim-gauge--food" style="--progress:${food}">
+                      <div class="sim-gauge-center"><span>🍴</span></div>
+                      <span class="sim-gauge-label">${food}%</span>
+                      <small>Comida</small>
                     </div>
                   </div>
 
-                  <div class="pet-care-grid">
-                    <div class="pet-care-item">
-                      <span class="pet-care-icon" aria-hidden="true">🌅</span>
-                      <span class="pet-care-label">Paseo mañana</span>
-                      <strong>${checkLabel(p.walkMorning)}</strong>
-                    </div>
-                    <div class="pet-care-item">
-                      <span class="pet-care-icon" aria-hidden="true">🌇</span>
-                      <span class="pet-care-label">Paseo tarde</span>
-                      <strong>${checkLabel(p.walkAfternoon)}</strong>
-                    </div>
-                    <div class="pet-care-item">
-                      <span class="pet-care-icon" aria-hidden="true">💧</span>
-                      <span class="pet-care-label">Pipí mañana</span>
-                      <strong>${checkLabel(p.peeMorning)}</strong>
-                    </div>
-                    <div class="pet-care-item">
-                      <span class="pet-care-icon" aria-hidden="true">💩</span>
-                      <span class="pet-care-label">Popó mañana</span>
-                      <strong>${checkLabel(p.poopMorning)}</strong>
-                    </div>
-                    <div class="pet-care-item">
-                      <span class="pet-care-icon" aria-hidden="true">💧</span>
-                      <span class="pet-care-label">Pipí tarde</span>
-                      <strong>${checkLabel(p.peeAfternoon)}</strong>
-                    </div>
-                    <div class="pet-care-item">
-                      <span class="pet-care-icon" aria-hidden="true">💩</span>
-                      <span class="pet-care-label">Popó tarde</span>
-                      <strong>${checkLabel(p.poopAfternoon)}</strong>
-                    </div>
-                    <div class="pet-care-item">
-                      <span class="pet-care-icon" aria-hidden="true">💊</span>
-                      <span class="pet-care-label">Medicamentos</span>
-                      <strong>${checkLabel(p.medicine)}</strong>
-                    </div>
-                    <div class="pet-care-item">
-                      <span class="pet-care-icon" aria-hidden="true">🍖</span>
-                      <span class="pet-care-label">Comida</span>
-                      <strong>${escapeHtml(p.food ?? "Sin registro")}</strong>
-                    </div>
-                    <div class="pet-care-item">
-                      <span class="pet-care-icon" aria-hidden="true">💧</span>
-                      <span class="pet-care-label">Agua</span>
-                      <strong>${escapeHtml(p.water ?? "Sin registro")}</strong>
-                    </div>
+                  <div class="sim-walks">
+                    ${walkSummary("Morning", p.walkMorning, p.peeMorning, p.poopMorning, "Paseo mañana", "🌅")}
+                    ${walkSummary("Afternoon", p.walkAfternoon, p.peeAfternoon, p.poopAfternoon, "Paseo tarde", "🌇")}
                   </div>
                 </section>
               `;
             }).join("")}
           </div>
         </section>
+        ${entry.description ? `<div class="sim-description"><span>📝</span><p>${escapeHtml(entry.description)}</p></div>` : ""}
       </article>
     `).join("") : '<p class="empty-state">Todavía no hay publicaciones guardadas.</p>';
   }
