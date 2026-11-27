@@ -8,6 +8,18 @@
   const loginButton = $("loginButton");
   const logoutButton = $("logoutButton");
   const sessionLabel = $("sessionLabel");
+  const familyView = new URLSearchParams(window.location.search).get("view") === "family";
+  let familyReadToken = "";
+
+  if (familyView && window.location.hash.length > 1) {
+    try {
+      familyReadToken = decodeURIComponent(window.location.hash.slice(1));
+    } catch (_) {
+      familyReadToken = "";
+    }
+    // Retirar el token de la barra de direcciones después de leerlo.
+    window.history.replaceState(null, "", window.location.pathname + window.location.search);
+  }
 
   function showLogin(message = "") {
     loginPanel.hidden = false;
@@ -57,7 +69,7 @@
   });
 
   // La sesión vive solo en memoria; al recargar la página se solicita acceso otra vez.
-  showLogin();
+  if (!familyView) showLogin();
 
   const today = new Date();
   $("entryDate").value = new Date(today.getTime() - today.getTimezoneOffset() * 60000).toISOString().slice(0,10);
@@ -288,6 +300,58 @@
         escapeHtml(error.message || "Inténtalo nuevamente.") + '</p>';
     }
   }
+
+  function showFamilyAccessError(message) {
+    loginPanel.hidden = false;
+    appContent.hidden = true;
+    logoutButton.hidden = true;
+    sessionLabel.hidden = true;
+    loginForm.hidden = true;
+    loginPanel.querySelector("h1").textContent = "Acceso familiar no disponible";
+    loginPanel.querySelector(".login-intro").textContent = message;
+    loginMessage.textContent = "Solicita al cuidador un enlace privado vigente.";
+    const demoPill = document.querySelector(".demo-pill");
+    if (demoPill) demoPill.hidden = true;
+  }
+
+  async function loadFamilyHistory(readToken) {
+    const historyList = $("historyList");
+    historyList.innerHTML = '<p class="empty-state">Cargando publicaciones…</p>';
+
+    try {
+      const entries = await window.PetSitterAPI.getFamilyEntries(readToken);
+      history.splice(0, history.length, ...entries);
+      renderHistory();
+    } catch (error) {
+      historyList.innerHTML = '<p class="empty-state">No fue posible cargar el historial familiar. ' +
+        escapeHtml(error.message || "Verifica que el enlace siga vigente.") + '</p>';
+    }
+  }
+
+  function showFamilyView() {
+    loginPanel.hidden = true;
+    appContent.hidden = false;
+    logoutButton.hidden = true;
+    sessionLabel.hidden = true;
+
+    const welcome = appContent.querySelector(".welcome");
+    if (welcome) welcome.hidden = true;
+
+    appContent.querySelectorAll(":scope > .panel, :scope > .actions").forEach(element => {
+      element.hidden = true;
+    });
+
+    const historyHeading = appContent.querySelector(".history .section-head");
+    if (historyHeading) {
+      const eyebrow = historyHeading.querySelector(".eyebrow");
+      const heading = historyHeading.querySelector("h2");
+      if (eyebrow) eyebrow.textContent = "ACCESO PRIVADO PARA LA FAMILIA";
+      if (heading) heading.textContent = "Historial de Lulu y Maya";
+    }
+
+    const demoPill = document.querySelector(".demo-pill");
+    if (demoPill) demoPill.hidden = true;
+  }
   function escapeHtml(value) {
     return String(value).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   }
@@ -340,4 +404,13 @@
     }
   });
   renderPets();
+
+  if (familyView) {
+    if (!familyReadToken) {
+      showFamilyAccessError("El enlace privado está incompleto o no es válido.");
+    } else {
+      showFamilyView();
+      loadFamilyHistory(familyReadToken);
+    }
+  }
 })();
