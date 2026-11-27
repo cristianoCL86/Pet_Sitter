@@ -116,6 +116,45 @@
       return data.photo;
     },
 
+    async getEntryPhotos(entryId) {
+      if (!currentSession || !currentSession.token) {
+        throw new Error("Tu sesión no está activa. Inicia sesión nuevamente.");
+      }
+
+      if (typeof entryId !== "string" || !entryId || entryId.length > 100) {
+        throw new Error("La publicación asociada no es válida.");
+      }
+
+      const data = await request("getEntryPhotos", {
+        token: currentSession.token,
+        entryId
+      });
+
+      if (!Array.isArray(data.photos)) {
+        throw new Error("El servidor devolvió fotografías no válidas.");
+      }
+
+      return data.photos;
+    },
+
+    async getFamilyEntryPhotos(entryId, readToken) {
+      if (typeof readToken !== "string" || !readToken || readToken.length > 512) {
+        throw new Error("El enlace familiar no es válido.");
+      }
+
+      if (typeof entryId !== "string" || !entryId || entryId.length > 100) {
+        throw new Error("La publicación asociada no es válida.");
+      }
+
+      const data = await request("getEntryPhotos", { readToken, entryId });
+
+      if (!Array.isArray(data.photos)) {
+        throw new Error("El servidor devolvió fotografías no válidas.");
+      }
+
+      return data.photos;
+    },
+
     async getEntries() {
       if (!currentSession || !currentSession.token) {
         throw new Error("Tu sesión no está activa. Inicia sesión nuevamente.");
