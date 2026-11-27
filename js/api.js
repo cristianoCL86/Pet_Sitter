@@ -90,6 +90,32 @@
       return data.entry;
     },
 
+    async uploadPhoto(entryId, base64, mimeType = "image/jpeg") {
+      if (!currentSession || !currentSession.token) {
+        throw new Error("Tu sesión no está activa. Inicia sesión nuevamente.");
+      }
+
+      if (typeof entryId !== "string" || !entryId || entryId.length > 100) {
+        throw new Error("La publicación asociada no es válida.");
+      }
+
+      if (mimeType !== "image/jpeg" ||
+          typeof base64 !== "string" ||
+          !base64 ||
+          base64.length > 420000) {
+        throw new Error("La fotografía no tiene un formato o tamaño permitido.");
+      }
+
+      const data = await request("uploadPhoto", {
+        token: currentSession.token,
+        entryId,
+        base64,
+        mimeType
+      });
+
+      return data.photo;
+    },
+
     async getEntries() {
       if (!currentSession || !currentSession.token) {
         throw new Error("Tu sesión no está activa. Inicia sesión nuevamente.");
