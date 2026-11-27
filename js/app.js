@@ -108,22 +108,87 @@
     const checkLabel = value =>
       value === true || String(value).toLowerCase() === "true" ? "Sí" : "No";
 
+    const petIcon = name => {
+      const normalized = String(name || "").toLowerCase();
+      return normalized === "lulu" ? "🐶" : normalized === "maya" ? "🐩" : "🐾";
+    };
+
+    const petTheme = name => {
+      const normalized = String(name || "").toLowerCase();
+      return normalized === "lulu" ? "lulu" : normalized === "maya" ? "maya" : "default";
+    };
+
     $("historyList").innerHTML = ordered.length ? ordered.map(entry => `
       <article class="history-entry">
-        <time>${escapeHtml(entry.date)}</time>
-        <p>${escapeHtml(entry.description || "Sin descripción.")}</p>
-        ${(entry.pets || []).map(p => `
-          <section class="history-pet">
-            <h4>${escapeHtml(p.name || p.pet_name || "Mascota")}</h4>
-            <ul>
-              <li>Paseo mañana: ${checkLabel(p.walkMorning)}</li>
-              <li>Paseo tarde: ${checkLabel(p.walkAfternoon)}</li>
-              <li>Medicamentos: ${checkLabel(p.medicine)}</li>
-              <li>Comida: ${escapeHtml(p.food ?? "Sin registro")}</li>
-              <li>Agua: ${escapeHtml(p.water ?? "Sin registro")}</li>
-            </ul>
-          </section>
-        `).join("")}
+        <header class="history-entry-head">
+          <div class="history-date-icon" aria-hidden="true">📅</div>
+          <div>
+            <span class="history-family-label">Familia</span>
+            <h3 class="history-family-title">Lulu y Maya</h3>
+            <time>${escapeHtml(entry.date)}</time>
+          </div>
+        </header>
+
+        <div class="history-description">
+          <span class="history-description-icon" aria-hidden="true">📝</span>
+          <p>${escapeHtml(entry.description || "Sin descripción.")}</p>
+        </div>
+
+        <section class="family-history-group">
+          <div class="family-history-heading">
+            <span aria-hidden="true">🏡</span>
+            <div>
+              <h4>Familia Lulu y Maya</h4>
+              <small>Resumen del cuidado</small>
+            </div>
+          </div>
+
+          <div class="family-pets-grid">
+            ${(entry.pets || []).map(p => {
+              const name = p.name || p.pet_name || "Mascota";
+              const theme = petTheme(name);
+              return `
+                <section class="history-pet history-pet--${theme}">
+                  <div class="history-pet-heading">
+                    <span class="history-pet-avatar" aria-hidden="true">${petIcon(name)}</span>
+                    <div>
+                      <h5>${escapeHtml(name)}</h5>
+                      <small>Ficha de cuidado</small>
+                    </div>
+                  </div>
+
+                  <div class="pet-care-grid">
+                    <div class="pet-care-item">
+                      <span class="pet-care-icon" aria-hidden="true">🌅</span>
+                      <span class="pet-care-label">Paseo mañana</span>
+                      <strong>${checkLabel(p.walkMorning)}</strong>
+                    </div>
+                    <div class="pet-care-item">
+                      <span class="pet-care-icon" aria-hidden="true">🌇</span>
+                      <span class="pet-care-label">Paseo tarde</span>
+                      <strong>${checkLabel(p.walkAfternoon)}</strong>
+                    </div>
+                    <div class="pet-care-item">
+                      <span class="pet-care-icon" aria-hidden="true">💊</span>
+                      <span class="pet-care-label">Medicamentos</span>
+                      <strong>${checkLabel(p.medicine)}</strong>
+                    </div>
+                    <div class="pet-care-item">
+                      <span class="pet-care-icon" aria-hidden="true">🍖</span>
+                      <span class="pet-care-label">Comida</span>
+                      <strong>${escapeHtml(p.food ?? "Sin registro")}</strong>
+                    </div>
+                    <div class="pet-care-item">
+                      <span class="pet-care-icon" aria-hidden="true">💧</span>
+                      <span class="pet-care-label">Agua</span>
+                      <strong>${escapeHtml(p.water ?? "Sin registro")}</strong>
+                    </div>
+                  </div>
+                </section>
+              `;
+            }).join("")}
+          </div>
+        </section>
       </article>
     `).join("") : '<p class="empty-state">Todavía no hay publicaciones guardadas.</p>';
   }
