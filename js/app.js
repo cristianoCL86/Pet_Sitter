@@ -203,7 +203,7 @@
     };
 
     const needsIcons = (pee, poop) =>
-      (checkLabel(pee) ? '<span class="sim-need-icon" title="Hizo pipí">🚽</span>' : '') +
+      (checkLabel(pee) ? '<span class="sim-need-icon" title="Hizo pipí">💦</span>' : '') +
       (checkLabel(poop) ? '<span class="sim-need-icon" title="Hizo popó">💩</span>' : '');
 
     const walkSummary = (period, done, pee, poop, label, icon) => {
