@@ -44,3 +44,51 @@ button:disabled{opacity:.6;cursor:wait}
 .pet-care-label{font-size:10px;color:#817a72;line-height:1.25}
 .pet-care-item strong{font-size:12px;color:#484139;font-weight:700}
 @media(max-width:620px){.family-pets-grid{grid-template-columns:1fr}.family-history-group{padding:11px}.history-entry{padding:15px}}
+
+
+/* Formulario de cuidador: fichas visuales para cada perrita */
+.pets-grid{grid-template-columns:1fr;gap:16px}
+.family-form-banner{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:15px 17px;background:#f8f4ef;border:1px solid #eee4da;border-radius:15px}
+.family-form-mark{display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:#efe2d6;font-size:20px}
+.family-form-copy{display:grid;gap:2px;flex:1}
+.family-form-copy>span{font-size:9px;letter-spacing:1.2px;font-weight:700;color:#a47b63}
+.family-form-copy strong{font:700 15px Manrope;color:#393630}
+.family-form-copy small{font-size:11px;color:#898178}
+.family-form-count{padding:6px 10px;border-radius:20px;background:#fff;color:#8c725f;font-size:10px;font-weight:700}
+.pet-card{padding:19px;border-radius:17px;background:#fff;box-shadow:0 4px 14px #40301a08}
+.pet-card--lulu{border:1.5px solid #d8b69e;background:linear-gradient(145deg,#fffaf6,#fff 65%)}
+.pet-card--maya{border:1.5px solid #d9dfe3;background:linear-gradient(145deg,#f8fbfd,#fff 65%)}
+.pet-card-head{display:flex;align-items:center;gap:11px;padding-bottom:15px;margin-bottom:16px;border-bottom:1px solid #eeeae5}
+.pet-card-avatar{display:grid;place-items:center;width:48px;height:48px;flex:0 0 48px;border-radius:15px;background:#f1dfd0;font-size:27px}
+.pet-card--maya .pet-card-avatar{background:#edf1f3}
+.pet-card-title{flex:1}
+.pet-card-title h3{margin:0;color:#393630;font:700 17px Manrope}
+.pet-card-title small{display:block;margin-top:3px;color:#938b82;font-size:11px}
+.pet-card-tag{padding:6px 9px;border-radius:20px;background:#f7f2ec;color:#92745e;font-size:10px;font-weight:700}
+.pet-slider-row{padding:12px 0}
+.pet-slider-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:8px}
+.pet-slider-title label{font-size:13px;font-weight:700;color:#514a43}
+.pet-slider-title output{font:700 14px Manrope;color:#936c56}
+.pet-range{display:block;width:100%;accent-color:#a8795e;cursor:pointer}
+.pet-card--maya .pet-range{accent-color:#718da2}
+.pet-range-scale{display:flex;justify-content:space-between;color:#aaa197;font-size:9px;margin-top:2px}
+.pet-toggle{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px;margin:13px 0;border:1px solid #eee8e0;border-radius:12px;background:#faf9f7;cursor:pointer}
+.pet-toggle>span:first-child{display:flex;align-items:center;gap:10px}
+.pet-toggle-icon{font-size:19px}
+.pet-toggle strong,.pet-toggle small{display:block}
+.pet-toggle strong{font-size:12px;color:#514a43}
+.pet-toggle small{margin-top:3px;font-size:10px;color:#968e85}
+.pet-toggle input,.pet-walk-option input{position:absolute;opacity:0;width:1px;height:1px}
+.pet-toggle-control{width:42px;height:24px;flex:0 0 42px;border-radius:20px;background:#ddd7d0;position:relative;transition:background .2s}
+.pet-toggle-control:after{content:"";position:absolute;width:18px;height:18px;left:3px;top:3px;border-radius:50%;background:#fff;box-shadow:0 1px 3px #0002;transition:transform .2s}
+.pet-toggle input:checked+.pet-toggle-control{background:#5c9b78}
+.pet-toggle input:checked+.pet-toggle-control:after{transform:translateX(18px)}
+.pet-walk-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.pet-walk-option{position:relative;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px;border:1px solid #e9e4de;border-radius:12px;background:#fff;cursor:pointer}
+.pet-walk-option>span:first-child{display:flex;align-items:center;gap:7px;min-width:0}
+.pet-walk-option>span:first-child>span{font-size:17px}
+.pet-walk-option strong{font-size:11px;color:#514a43}
+.pet-check-control{display:grid;place-items:center;width:25px;height:25px;flex:0 0 25px;border:1px solid #d9d2ca;border-radius:50%;color:transparent;font-size:13px}
+.pet-walk-option input:checked+.pet-check-control{background:#5c9b78;border-color:#5c9b78;color:#fff}
+.pet-toggle input:focus-visible+.pet-toggle-control,.pet-walk-option input:focus-visible+.pet-check-control{outline:3px solid #9d735b55;outline-offset:2px}
+@media(max-width:620px){.pet-card{padding:15px}.pet-walk-grid{grid-template-columns:1fr}.family-form-banner{padding:12px}.pet-card-tag{font-size:9px}}
