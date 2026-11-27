@@ -68,23 +68,81 @@
   const history = [];
 
   function renderPets() {
-    $("petsContainer").innerHTML = pets.map(pet => {
-      state.set(pet.id, { walkMorning:false, walkAfternoon:false, medicine:false, food:"0%", water:"0%" });
-      return `<article class="pet-card" data-pet="${pet.id}">
-        <h3><span>${pet.emoji}</span>${pet.name}</h3>
-        <label class="check-row">Paseo mañana <input type="checkbox" data-field="walkMorning"></label>
-        <label class="check-row">Paseo tarde <input type="checkbox" data-field="walkAfternoon"></label>
-        <label class="check-row">Medicinas administradas <input type="checkbox" data-field="medicine"></label>
-        <div class="metric"><label>Comida</label><select data-field="food">${levels.map(v=>`<option>${v}</option>`).join("")}</select></div>
-        <div class="metric"><label>Agua</label><select data-field="water">${levels.map(v=>`<option>${v}</option>`).join("")}</select></div>
-      </article>`;
-    }).join("");
-    $("petsContainer").addEventListener("change", event => {
+    $("petsContainer").innerHTML = `
+      <div class="family-form-banner">
+        <div class="family-form-mark">🏡</div>
+        <div class="family-form-copy">
+          <span>REGISTRO FAMILIAR</span>
+          <strong>Familia Lulu y Maya</strong>
+          <small>Completa una ficha para cada perrita</small>
+        </div>
+        <span class="family-form-count">${pets.length} fichas</span>
+      </div>
+      ${pets.map(pet => {
+        state.set(pet.id, { walkMorning:false, walkAfternoon:false, medicine:false, food:"0%", water:"0%" });
+        const theme = pet.id === "lulu" ? "lulu" : pet.id === "maya" ? "maya" : "default";
+        const description = pet.id === "lulu" ? "Perrita café" : pet.id === "maya" ? "Perrita blanca" : "Ficha individual";
+        return `<article class="pet-card pet-card--${theme}" data-pet="${pet.id}">
+          <header class="pet-card-head">
+            <span class="pet-card-avatar">${pet.emoji}</span>
+            <div class="pet-card-title">
+              <h3>${escapeHtml(pet.name)}</h3>
+              <small>${description}</small>
+            </div>
+            <span class="pet-card-tag">Cuidado diario</span>
+          </header>
+
+          <div class="pet-slider-row">
+            <div class="pet-slider-title"><label for="water-${pet.id}">💧 Agua disponible</label><output id="water-value-${pet.id}">0%</output></div>
+            <input id="water-${pet.id}" class="pet-range" type="range" min="0" max="100" step="25" value="0" data-field="water" data-output="water-value-${pet.id}">
+            <div class="pet-range-scale"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+          </div>
+
+          <div class="pet-slider-row">
+            <div class="pet-slider-title"><label for="food-${pet.id}">🍖 Comida consumida</label><output id="food-value-${pet.id}">0%</output></div>
+            <input id="food-${pet.id}" class="pet-range" type="range" min="0" max="100" step="25" value="0" data-field="food" data-output="food-value-${pet.id}">
+            <div class="pet-range-scale"><span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span></div>
+          </div>
+
+          <label class="pet-toggle">
+            <span><span class="pet-toggle-icon">💊</span><span><strong>Medicamento administrado</strong><small>Marcar si recibió su medicamento</small></span></span>
+            <input type="checkbox" data-field="medicine"><span class="pet-toggle-control"></span>
+          </label>
+
+          <div class="pet-walk-grid">
+            <label class="pet-walk-option">
+              <span><span>🌅</span><strong>Paseo mañana</strong></span>
+              <input type="checkbox" data-field="walkMorning"><span class="pet-check-control">✓</span>
+            </label>
+            <label class="pet-walk-option">
+              <span><span>🌇</span><strong>Paseo tarde</strong></span>
+              <input type="checkbox" data-field="walkAfternoon"><span class="pet-check-control">✓</span>
+            </label>
+          </div>
+        </article>`;
+      }).join("")}
+    `;
+
+    const updatePetState = event => {
       const card = event.target.closest("[data-pet]");
       if (!card) return;
       const pet = state.get(card.dataset.pet);
       const field = event.target.dataset.field;
-      if (field) pet[field] = event.target.type === "checkbox" ? event.target.checked : event.target.value;
+      if (!field || !pet) return;
+      if (event.target.type === "checkbox") {
+        pet[field] = event.target.checked;
+      } else if (event.target.type === "range") {
+        pet[field] = event.target.value + "%";
+        const output = $(event.target.dataset.output);
+        if (output) output.textContent = event.target.value + "%";
+      }
+    };
+
+    $("petsContainer").addEventListener("input", event => {
+      if (event.target.type === "range") updatePetState(event);
+    });
+    $("petsContainer").addEventListener("change", event => {
+      if (event.target.type === "checkbox") updatePetState(event);
     });
   }
   $("dayDescription").addEventListener("input", e => $("charCount").textContent = e.target.value.length);
